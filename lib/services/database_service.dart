@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -16,13 +18,23 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'erp_database.db');
-    return await openDatabase(
-      path,
-      version: 3, // Incremented version for notifications table
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-    );
+    String path = "";
+    String dbName = 'erp_database.db';
+    Future<Database> db;
+    if (kIsWeb) {
+      var factory = databaseFactoryFfiWeb;
+      path = dbName;
+      db = factory.openDatabase(dbName);
+    } else {
+      path = join(await getDatabasesPath(), dbName);
+      db = openDatabase(
+        path,
+        version: 3, // Incremented version for notifications table
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      );
+    }
+    return await db;
   }
 
   Future<void> _onCreate(Database db, int version) async {
